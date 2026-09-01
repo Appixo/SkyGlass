@@ -1,4 +1,4 @@
-// FR24 Clear View — page-world hook (runs at document_start in the MAIN world).
+// SkyGlass — page-world hook (runs at document_start in the MAIN world).
 // Captures Google Maps Map instances as the site creates them, so the
 // content script can toggle a RainViewer rain-radar overlay on the real map.
 

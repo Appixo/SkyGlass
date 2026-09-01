@@ -1,4 +1,4 @@
-# FR24 Clear View
+# SkyGlass
 
 A browser extension (Chrome + Firefox) that declutters [Flightradar24](https://www.flightradar24.com) so you can actually follow a plane:
 

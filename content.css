@@ -1,4 +1,4 @@
-/* FR24 Clear View — all rules are gated behind fcv-* classes toggled on <html> */
+/* SkyGlass — all rules are gated behind fcv-* classes toggled on <html> */
 
 /* ---- Full-width map: hide the right sidebar (premium promos / ads) ---- */
 html.fcv-no-sidebar #app aside.w-sidebar {

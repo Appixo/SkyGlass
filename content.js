@@ -1,4 +1,4 @@
-// FR24 Clear View — content script
+// SkyGlass — content script
 // Applies fcv-* classes on <html> based on saved settings and hosts the
 // on-map control pill. All visual work is done by content.css, so the
 // SPA can re-render as much as it likes.
@@ -50,7 +50,7 @@
         window.postMessage({ source: "fcv", cmd: "weather", on: true, tilePath }, "*");
       }
     } catch (e) {
-      console.warn("FR24 Clear View: rain radar unavailable", e);
+      console.warn("SkyGlass: rain radar unavailable", e);
     } finally {
       weatherPending = false;
     }

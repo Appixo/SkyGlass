@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "FR24 Clear View",
-  "version": "1.1.0",
+  "name": "SkyGlass",
+  "version": "1.2.0",
   "description": "A cleaner Flightradar24: full-width map, compact flight panel, no ads, rain radar and keyboard shortcuts.",
   "permissions": ["storage"],
   "host_permissions": [
@@ -24,7 +24,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "FR24 Clear View",
+    "default_title": "SkyGlass",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
@@ -40,7 +40,7 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "fr24-clear-view@gekgekke.gmail.com",
+      "id": "skyglass@gekgekke.gmail.com",
       "strict_min_version": "121.0"
     }
   }
