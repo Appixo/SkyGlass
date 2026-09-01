@@ -1,5 +1,8 @@
 /* SkyGlass — all rules are gated behind fcv-* classes toggled on <html> */
 
+/* The flight panel wrapper: the floating div that directly contains the
+   aircraft panel (matched via FR24's own stable data-testid). */
+
 /* ---- Full-width map: hide the right sidebar (premium promos / ads) ---- */
 html.fcv-no-sidebar #app aside.w-sidebar {
   display: none !important;
@@ -13,22 +16,56 @@ html.fcv-no-ads div:has(> [id^="pb-slot"]) {
 }
 
 /* ---- Flight panel: compact mode — drop the aircraft photo, keep the data ---- */
-html.fcv-panel-compact #app main div.w-84 main > div > div.relative:first-child {
+html.fcv-panel-compact [data-testid="aircraft-panel__image"] {
   display: none !important;
 }
 
 /* ---- Flight panel: hidden mode ---- */
+html.fcv-panel-hidden #app div:has(> [data-testid="aircraft-panel"]),
 html.fcv-panel-hidden #app main div.w-84 {
   display: none !important;
 }
 
 /* ---- Dim the panel until you hover it, so the map shows through ---- */
+html.fcv-dim #app div:has(> [data-testid="aircraft-panel"]),
 html.fcv-dim #app main div.w-84 {
   opacity: 0.4;
   transition: opacity 0.25s ease;
 }
+html.fcv-dim #app div:has(> [data-testid="aircraft-panel"]):hover,
 html.fcv-dim #app main div.w-84:hover {
   opacity: 1;
+}
+
+/* ---- Map color themes (CSS filter over the whole map canvas) ---- */
+html.fcv-theme-grayscale #app main .gm-style {
+  filter: grayscale(1);
+}
+html.fcv-theme-sepia #app main .gm-style {
+  filter: sepia(0.55) saturate(0.9);
+}
+html.fcv-theme-night #app main .gm-style {
+  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.95);
+}
+
+/* ---- Aircraft layer (canvas tagged by content.js) ---- */
+canvas.fcv-planes {
+  opacity: var(--fcv-plane-opacity, 1);
+}
+
+/* Focus mode: only the followed plane (screen center) stays fully visible;
+   every other aircraft fades to a ghost. Works best with auto-follow on. */
+html.fcv-focus canvas.fcv-planes {
+  mask-image: radial-gradient(
+    circle at 50% 50%,
+    rgb(0 0 0) 0 70px,
+    rgb(0 0 0 / 0.1) 150px
+  );
+  -webkit-mask-image: radial-gradient(
+    circle at 50% 50%,
+    rgb(0 0 0) 0 70px,
+    rgb(0 0 0 / 0.1) 150px
+  );
 }
 
 /* ---- Floating control pill ---- */

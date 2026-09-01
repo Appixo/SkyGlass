@@ -13,7 +13,14 @@
     dimPanel: false,
     showPill: true,
     weather: false,
+    autoFollow: false,
+    mapDim: 0, // 0–80 (%)
+    mapTheme: "normal", // "normal" | "grayscale" | "sepia" | "night"
+    focusMode: false,
+    planeOpacity: 100, // 20–100 (%)
   };
+
+  const THEMES = ["normal", "grayscale", "sepia", "night"];
 
   let settings = { ...DEFAULTS };
 
@@ -25,11 +32,62 @@
     html.classList.toggle("fcv-panel-hidden", settings.panelMode === "hidden");
     html.classList.toggle("fcv-dim", settings.dimPanel);
     html.classList.toggle("fcv-no-pill", !settings.showPill);
+    for (const t of THEMES) {
+      html.classList.toggle(`fcv-theme-${t}`, t !== "normal" && settings.mapTheme === t);
+    }
+    html.classList.toggle("fcv-focus", settings.focusMode);
+    html.style.setProperty(
+      "--fcv-plane-opacity",
+      String(Math.min(100, Math.max(20, settings.planeOpacity)) / 100)
+    );
+    tagPlaneCanvas();
     // Let the map (Google Maps) pick up the new available width.
     window.dispatchEvent(new Event("resize"));
     syncWeather();
+    syncDim();
     updatePill();
   }
+
+  // ---- Basemap dimming (planes stay bright; drawn by page-hook.js) ----
+  let lastSentDim = null;
+  function syncDim() {
+    const opacity = Math.min(80, Math.max(0, settings.mapDim)) / 100;
+    if (opacity === lastSentDim) return;
+    lastSentDim = opacity;
+    window.postMessage({ source: "fcv", cmd: "dim", opacity }, "*");
+  }
+
+  // ---- Tag FR24's aircraft canvas so CSS can target it ----
+  // The aircraft layer is a full-viewport canvas outside .gm-style whose
+  // wrapper sits at z-index 1 (the z-index 0 sibling holds trails/labels).
+  function tagPlaneCanvas() {
+    for (const c of document.querySelectorAll("canvas")) {
+      if (c.closest(".gm-style") || c.classList.contains("fcv-planes")) continue;
+      if (getComputedStyle(c.parentElement).zIndex === "1") {
+        c.classList.add("fcv-planes");
+      }
+    }
+  }
+  setInterval(tagPlaneCanvas, 2000);
+
+  // ---- Auto-follow: keep the selected flight followed ----
+  // FR24's follow button icon carries `stroke-0 group-hover:stroke-current`
+  // when NOT following and `stroke-current stroke-0.5` while following. Only
+  // click on the exact not-following signature so a future site change makes
+  // this a no-op instead of a misfire.
+  function autoFollowTick() {
+    if (!settings.autoFollow) return;
+    const btn = document.querySelector(
+      '[data-testid="aircraft__follow-flight-button"]'
+    );
+    const svg = btn && btn.querySelector("svg");
+    if (!svg) return;
+    const cls = svg.classList;
+    if (cls.contains("stroke-0") && cls.contains("group-hover:stroke-current")) {
+      btn.click();
+    }
+  }
+  setInterval(autoFollowTick, 3000);
 
   // ---- Rain radar overlay (free RainViewer tiles, drawn by page-hook.js) ----
   let weatherActive = false;
@@ -108,10 +166,13 @@
     const btnDim = mkBtn("◑", () => save({ dimPanel: !settings.dimPanel }));
     btnDim.dataset.fcv = "dim";
 
-    const btnWeather = mkBtn("☂", () => save({ weather: !settings.weather }));
-    btnWeather.dataset.fcv = "weather";
+    const btnFollow = mkBtn("⌖", () => save({ autoFollow: !settings.autoFollow }));
+    btnFollow.dataset.fcv = "follow";
 
-    pill.append(btnSidebar, btnPanel, btnDim, btnWeather);
+    const btnFocus = mkBtn("◎", () => save({ focusMode: !settings.focusMode }));
+    btnFocus.dataset.fcv = "focus";
+
+    pill.append(btnSidebar, btnPanel, btnDim, btnFollow, btnFocus);
     document.body.appendChild(pill);
     updatePill();
   }
@@ -140,11 +201,16 @@
     dm.title = settings.dimPanel
       ? "Panel dimming on (click to disable)"
       : "Dim flight panel until hovered";
-    const wx = q("weather");
-    wx.classList.toggle("fcv-on", settings.weather);
-    wx.title = settings.weather
-      ? "Rain radar on (click to disable)"
-      : "Show rain radar overlay";
+    const af = q("follow");
+    af.classList.toggle("fcv-on", settings.autoFollow);
+    af.title = settings.autoFollow
+      ? "Auto-follow on (click to disable)"
+      : "Auto-follow the selected flight";
+    const fc = q("focus");
+    fc.classList.toggle("fcv-on", settings.focusMode);
+    fc.title = settings.focusMode
+      ? "Focus mode on (click to disable)"
+      : "Focus mode: fade all planes except the followed one";
   }
 
   // ---- Keyboard shortcuts ----
@@ -158,16 +224,24 @@
     },
     d: () => save({ dimPanel: !settings.dimPanel }),
     w: () => save({ weather: !settings.weather }),
+    a: () => save({ autoFollow: !settings.autoFollow }),
+    o: () => save({ focusMode: !settings.focusMode }),
+    t: () => {
+      const next = THEMES[(THEMES.indexOf(settings.mapTheme) + 1) % THEMES.length];
+      save({ mapTheme: next });
+    },
+    m: () => {
+      // Cycle basemap dimming: 0 → 30 → 50 → 70 → 0
+      const steps = [0, 30, 50, 70];
+      const next = steps[(steps.indexOf(settings.mapDim) + 1) % steps.length] ?? 30;
+      save({ mapDim: next });
+    },
     f: () => {
-      // Click the site's own Follow button in the flight panel footer.
-      for (const span of document.querySelectorAll(
-        "#app main div.w-84 footer button span"
-      )) {
-        if (span.textContent.trim() === "Follow") {
-          span.closest("button").click();
-          return;
-        }
-      }
+      // Click the site's own Follow button once.
+      const btn = document.querySelector(
+        '[data-testid="aircraft__follow-flight-button"]'
+      );
+      if (btn) btn.click();
     },
   };
 

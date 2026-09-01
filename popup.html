@@ -23,6 +23,12 @@
     label { display: flex; align-items: center; gap: 8px; padding: 5px 0; cursor: pointer; }
     .title { font-weight: 600; margin: 4px 0 2px; color: #9aa3b2; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
     input { accent-color: #f8d648; }
+    select {
+      margin-left: auto; background: #232936; color: #e6e9ee;
+      border: 1px solid #2a3040; border-radius: 6px; padding: 2px 4px;
+    }
+    input[type="range"] { flex: 1; margin-left: auto; }
+    #mapDimVal, #planeOpacityVal { width: 34px; text-align: right; color: #9aa3b2; }
   </style>
 </head>
 <body>
@@ -32,7 +38,28 @@
     <label><input type="checkbox" id="hideAds" /> Remove ad slots</label>
     <label><input type="checkbox" id="dimPanel" /> Dim panel until hovered</label>
     <label><input type="checkbox" id="weather" /> Rain radar overlay</label>
+    <label><input type="checkbox" id="autoFollow" /> Auto-follow selected flight</label>
+    <label><input type="checkbox" id="focusMode" /> Focus mode (fade other planes)</label>
     <label><input type="checkbox" id="showPill" /> Show on-map buttons</label>
+  </div>
+  <div class="group">
+    <div class="title">Map view</div>
+    <label>Theme
+      <select id="mapTheme">
+        <option value="normal">Normal</option>
+        <option value="grayscale">Grayscale</option>
+        <option value="sepia">Sepia</option>
+        <option value="night">Night (inverted)</option>
+      </select>
+    </label>
+    <label>Dim basemap
+      <input type="range" id="mapDim" min="0" max="80" step="10" />
+      <span id="mapDimVal"></span>
+    </label>
+    <label>Plane opacity
+      <input type="range" id="planeOpacity" min="20" max="100" step="10" />
+      <span id="planeOpacityVal"></span>
+    </label>
   </div>
   <div class="group">
     <div class="title">Flight panel</div>
@@ -43,8 +70,9 @@
   <div class="group">
     <div class="title">Shortcuts (on the map)</div>
     <div style="color:#9aa3b2; line-height:1.7;">
-      <b>S</b> sidebar &nbsp; <b>P</b> panel &nbsp; <b>D</b> dim<br />
-      <b>W</b> rain radar &nbsp; <b>F</b> follow flight
+      <b>S</b> sidebar &nbsp; <b>P</b> panel &nbsp; <b>D</b> dim panel<br />
+      <b>W</b> rain radar &nbsp; <b>A</b> auto-follow &nbsp; <b>F</b> follow<br />
+      <b>T</b> map theme &nbsp; <b>M</b> map dimming &nbsp; <b>O</b> focus
     </div>
   </div>
   <script src="popup.js"></script>

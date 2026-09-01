@@ -75,6 +75,54 @@
   }, 250);
   setTimeout(() => clearInterval(poll), 30000);
 
+  let dimOverlay = null;
+  let dimTileUrl = null;
+
+  function getDimTileUrl() {
+    if (!dimTileUrl) {
+      const c = document.createElement("canvas");
+      c.width = c.height = 256;
+      const ctx = c.getContext("2d");
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, 256, 256);
+      dimTileUrl = c.toDataURL("image/png");
+    }
+    return dimTileUrl;
+  }
+
+  // Dim the basemap with a translucent black tile layer. Overlay tiles on
+  // vector maps composite below FR24's WebGL-drawn aircraft, so planes and
+  // trails stay at full brightness while the map fades back.
+  function setDim(opacity) {
+    const g = window.google;
+    if (!g?.maps?.ImageMapType || !capturedMaps.length) {
+      // Map not up yet — retry until it is.
+      if (opacity > 0) setTimeout(() => setDim(opacity), 1000);
+      return;
+    }
+    if (!dimOverlay && opacity > 0) {
+      const url = getDimTileUrl();
+      dimOverlay = new g.maps.ImageMapType({
+        getTileUrl: () => url,
+        tileSize: new g.maps.Size(256, 256),
+        opacity,
+        name: "fcv-dim",
+      });
+      for (const m of capturedMaps) m.overlayMapTypes.insertAt(0, dimOverlay);
+    } else if (dimOverlay && opacity > 0) {
+      dimOverlay.setOpacity(opacity);
+    } else if (dimOverlay && opacity <= 0) {
+      for (const m of capturedMaps) {
+        for (let i = m.overlayMapTypes.getLength() - 1; i >= 0; i--) {
+          if (m.overlayMapTypes.getAt(i)?.name === "fcv-dim") {
+            m.overlayMapTypes.removeAt(i);
+          }
+        }
+      }
+      dimOverlay = null;
+    }
+  }
+
   function setWeather(on, tilePath) {
     const g = window.google;
     if (!g?.maps?.ImageMapType) return;
@@ -105,5 +153,6 @@
   window.addEventListener("message", (e) => {
     if (e.source !== window || e.data?.source !== "fcv") return;
     if (e.data.cmd === "weather") setWeather(e.data.on, e.data.tilePath);
+    if (e.data.cmd === "dim") setDim(e.data.opacity);
   });
 })();

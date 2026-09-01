@@ -7,8 +7,13 @@ A browser extension (Chrome + Firefox) that declutters [Flightradar24](https://w
 - **Hidden panel mode** — a completely clean map
 - **Dim panel** — the flight panel goes translucent until you hover it
 - **Live rain radar overlay** — real-time precipitation drawn on the map, using the free [RainViewer](https://www.rainviewer.com/api.html) public API (refreshes every 10 minutes)
-- **Keyboard shortcuts** — `S` sidebar, `P` panel cycle, `D` dim, `W` rain radar, `F` follow the selected flight
-- **On-map control pill** (bottom-right) — buttons to toggle the sidebar (◧), cycle the panel full → compact → hidden (▤/▥/□), toggle dimming (◑), and toggle the rain radar (☂)
+- **Auto-follow** — keeps the selected flight followed; if following ever drops (map drag, panel re-render), it re-engages within seconds
+- **Focus mode** — fades every aircraft except the one at screen center (the followed plane) to a ghost, so a busy sky reduces to your one flight; pairs perfectly with auto-follow
+- **Map themes** — Normal / Grayscale / Sepia / Night (inverted); the aircraft layer is drawn separately, so planes stay bright yellow even on the night map
+- **Basemap dimming** — darkens only the map tiles (planes, trails and labels keep full brightness)
+- **Plane opacity** — global slider for the aircraft layer
+- **Keyboard shortcuts** — `S` sidebar, `P` panel cycle, `D` dim panel, `W` rain radar, `A` auto-follow, `O` focus mode, `T` cycle map theme, `M` cycle map dimming, `F` follow once
+- **On-map control pill** (bottom-right) — sidebar (◧), panel cycle (▤/▥/□), panel dimming (◑), auto-follow (⌖), focus mode (◎)
 
 Settings are also available from the toolbar popup and sync across devices via extension storage.
 
@@ -37,5 +42,7 @@ Settings are also available from the toolbar popup and sync across devices via e
 
 ## Notes
 
-- Flightradar24 is a Vue SPA with Tailwind classes; the selectors used (`aside.w-sidebar`, `div.w-84`, `[id^="pb-slot"]`) are the most stable hooks available. If FR24 ships a redesign, they may need updating.
-- Needs a browser with CSS `:has()` support (Chrome 105+, Firefox 121+).
+- Selectors use FR24's own `data-testid` attributes where they exist (`aircraft-panel`, `aircraft__follow-flight-button`, …) — far more stable than Tailwind classes. A few fallbacks (`aside.w-sidebar`, `[id^="pb-slot"]`) remain for elements without testids.
+- FR24 renders aircraft on a dedicated full-screen canvas outside the Google Maps container. That's what makes focus mode, plane opacity, and planes-stay-bright themes possible with pure CSS.
+- Hiding individual *other* aircraft entirely isn't possible client-side (all planes share one WebGL canvas); focus mode's radial mask is the closest equivalent, and it works because following keeps your plane at screen center.
+- Needs a browser with CSS `:has()` and `mask-image` support (Chrome 120+, Firefox 121+).

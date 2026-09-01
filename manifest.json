@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SkyGlass",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "A cleaner Flightradar24: full-width map, compact flight panel, no ads, rain radar and keyboard shortcuts.",
   "permissions": ["storage"],
   "host_permissions": [
