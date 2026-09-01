@@ -12,6 +12,7 @@
     panelMode: "compact", // "full" | "compact" | "hidden"
     dimPanel: false,
     showPill: true,
+    weather: false,
   };
 
   let settings = { ...DEFAULTS };
@@ -26,8 +27,50 @@
     html.classList.toggle("fcv-no-pill", !settings.showPill);
     // Let the map (Google Maps) pick up the new available width.
     window.dispatchEvent(new Event("resize"));
+    syncWeather();
     updatePill();
   }
+
+  // ---- Rain radar overlay (free RainViewer tiles, drawn by page-hook.js) ----
+  let weatherActive = false;
+  let weatherPending = false;
+
+  async function syncWeather() {
+    if (settings.weather === weatherActive || weatherPending) return;
+    if (!settings.weather) {
+      window.postMessage({ source: "fcv", cmd: "weather", on: false }, "*");
+      return;
+    }
+    weatherPending = true;
+    try {
+      const res = await fetch("https://api.rainviewer.com/public/weather-maps.json");
+      const data = await res.json();
+      const tilePath = data?.radar?.past?.at(-1)?.path;
+      if (tilePath) {
+        window.postMessage({ source: "fcv", cmd: "weather", on: true, tilePath }, "*");
+      }
+    } catch (e) {
+      console.warn("FR24 Clear View: rain radar unavailable", e);
+    } finally {
+      weatherPending = false;
+    }
+  }
+
+  window.addEventListener("message", (e) => {
+    if (e.source !== window || e.data?.source !== "fcv-page") return;
+    if (e.data.cmd === "weather-state") {
+      weatherActive = e.data.active;
+      updatePill();
+    }
+  });
+
+  // Refresh the radar frame every 10 minutes while enabled.
+  setInterval(() => {
+    if (settings.weather) {
+      weatherActive = false;
+      syncWeather();
+    }
+  }, 10 * 60 * 1000);
 
   function save(patch) {
     settings = { ...settings, ...patch };
@@ -65,7 +108,10 @@
     const btnDim = mkBtn("◑", () => save({ dimPanel: !settings.dimPanel }));
     btnDim.dataset.fcv = "dim";
 
-    pill.append(btnSidebar, btnPanel, btnDim);
+    const btnWeather = mkBtn("☂", () => save({ weather: !settings.weather }));
+    btnWeather.dataset.fcv = "weather";
+
+    pill.append(btnSidebar, btnPanel, btnDim, btnWeather);
     document.body.appendChild(pill);
     updatePill();
   }
@@ -94,7 +140,49 @@
     dm.title = settings.dimPanel
       ? "Panel dimming on (click to disable)"
       : "Dim flight panel until hovered";
+    const wx = q("weather");
+    wx.classList.toggle("fcv-on", settings.weather);
+    wx.title = settings.weather
+      ? "Rain radar on (click to disable)"
+      : "Show rain radar overlay";
   }
+
+  // ---- Keyboard shortcuts ----
+  const SHORTCUTS = {
+    s: () => save({ hideSidebar: !settings.hideSidebar }),
+    p: () => {
+      const next = { full: "compact", compact: "hidden", hidden: "full" }[
+        settings.panelMode
+      ];
+      save({ panelMode: next });
+    },
+    d: () => save({ dimPanel: !settings.dimPanel }),
+    w: () => save({ weather: !settings.weather }),
+    f: () => {
+      // Click the site's own Follow button in the flight panel footer.
+      for (const span of document.querySelectorAll(
+        "#app main div.w-84 footer button span"
+      )) {
+        if (span.textContent.trim() === "Follow") {
+          span.closest("button").click();
+          return;
+        }
+      }
+    },
+  };
+
+  document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target;
+    if (
+      t instanceof HTMLElement &&
+      (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)
+    ) {
+      return;
+    }
+    const fn = SHORTCUTS[e.key.toLowerCase()];
+    if (fn) fn();
+  });
 
   // Re-add the pill if the SPA ever blows away <body>'s children.
   const observer = new MutationObserver(() => {

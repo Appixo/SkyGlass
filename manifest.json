@@ -1,10 +1,20 @@
 {
   "manifest_version": 3,
   "name": "FR24 Clear View",
-  "version": "1.0.0",
-  "description": "A cleaner Flightradar24: full-width map, compact flight panel, no ads — so you can actually follow the plane.",
+  "version": "1.1.0",
+  "description": "A cleaner Flightradar24: full-width map, compact flight panel, no ads, rain radar and keyboard shortcuts.",
   "permissions": ["storage"],
+  "host_permissions": [
+    "https://api.rainviewer.com/*",
+    "https://tilecache.rainviewer.com/*"
+  ],
   "content_scripts": [
+    {
+      "matches": ["*://*.flightradar24.com/*"],
+      "js": ["page-hook.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
     {
       "matches": ["*://*.flightradar24.com/*"],
       "css": ["content.css"],

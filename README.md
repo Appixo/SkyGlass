@@ -6,9 +6,13 @@ A browser extension (Chrome + Firefox) that declutters [Flightradar24](https://w
 - **Compact flight panel** — keeps route, times, altitude and speed, drops the aircraft photo and the 250px ad slot embedded in the panel
 - **Hidden panel mode** — a completely clean map
 - **Dim panel** — the flight panel goes translucent until you hover it
-- **On-map control pill** (bottom-right) — three buttons to toggle the sidebar (◧), cycle the panel full → compact → hidden (▤/▥/□), and toggle dimming (◑)
+- **Live rain radar overlay** — real-time precipitation drawn on the map, using the free [RainViewer](https://www.rainviewer.com/api.html) public API (refreshes every 10 minutes)
+- **Keyboard shortcuts** — `S` sidebar, `P` panel cycle, `D` dim, `W` rain radar, `F` follow the selected flight
+- **On-map control pill** (bottom-right) — buttons to toggle the sidebar (◧), cycle the panel full → compact → hidden (▤/▥/□), toggle dimming (◑), and toggle the rain radar (☂)
 
 Settings are also available from the toolbar popup and sync across devices via extension storage.
+
+> FR24's actual premium features (extended history, alerts, their weather layers, unlimited 3D) are gated server-side by their subscription — this extension doesn't and won't unlock those. The rain radar here comes from RainViewer's free public tiles instead.
 
 ## Install (Chrome / Edge)
 
@@ -27,7 +31,8 @@ Settings are also available from the toolbar popup and sync across devices via e
 
 - `manifest.json` — MV3 manifest, works in both Chrome and Firefox (the `browser_specific_settings` key is ignored by Chrome)
 - `content.css` — all visual rules, gated behind `fcv-*` classes on `<html>`
-- `content.js` — applies settings, injects the control pill
+- `content.js` — applies settings, injects the control pill, keyboard shortcuts, RainViewer frame fetching
+- `page-hook.js` — runs in the page world at `document_start`; wraps `google.maps.Map` to capture the map instance so the radar overlay can be attached
 - `popup.html` / `popup.js` — settings popup
 
 ## Notes
