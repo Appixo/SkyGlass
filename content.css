@@ -37,15 +37,16 @@ html.fcv-dim #app main div.w-84:hover {
   opacity: 1;
 }
 
-/* ---- Map color themes (CSS filter over the whole map canvas) ---- */
-html.fcv-theme-grayscale #app main .gm-style {
-  filter: grayscale(1);
+/* ---- Map color theme + basemap dimming ----
+   One combined filter (set by content.js) on the basemap container. FR24
+   draws aircraft on a separate canvas outside .gm-style, so planes, trails
+   and labels keep full color and brightness whatever the filter does. */
+#app main .gm-style {
+  filter: var(--fcv-map-filter, none);
 }
-html.fcv-theme-sepia #app main .gm-style {
-  filter: sepia(0.55) saturate(0.9);
-}
-html.fcv-theme-night #app main .gm-style {
-  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.95);
+/* The night theme's invert would recolor the rain radar; counter it. */
+.fcv-rain-layer {
+  filter: var(--fcv-rain-filter, none);
 }
 
 /* ---- Aircraft layer (canvas tagged by content.js) ---- */

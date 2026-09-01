@@ -34,7 +34,8 @@ Settings are also available from the toolbar popup and sync across devices via e
 
 ## Files
 
-- `manifest.json` — MV3 manifest, works in both Chrome and Firefox (the `browser_specific_settings` key is ignored by Chrome)
+- `manifest.json` — MV3 manifest, works in both Chrome and Firefox (the `browser_specific_settings` key is ignored by Chrome; the dual `background` declaration serves Chrome's service worker and Firefox's event page)
+- `background.js` — fetches the RainViewer frame index (Firefox content scripts can't make cross-origin requests, so this lives in the background in both browsers)
 - `content.css` — all visual rules, gated behind `fcv-*` classes on `<html>`
 - `content.js` — applies settings, injects the control pill, keyboard shortcuts, RainViewer frame fetching
 - `page-hook.js` — runs in the page world at `document_start`; wraps `google.maps.Map` to capture the map instance so the radar overlay can be attached
@@ -43,6 +44,8 @@ Settings are also available from the toolbar popup and sync across devices via e
 ## Notes
 
 - Selectors use FR24's own `data-testid` attributes where they exist (`aircraft-panel`, `aircraft__follow-flight-button`, …) — far more stable than Tailwind classes. A few fallbacks (`aside.w-sidebar`, `[id^="pb-slot"]`) remain for elements without testids.
-- FR24 renders aircraft on a dedicated full-screen canvas outside the Google Maps container. That's what makes focus mode, plane opacity, and planes-stay-bright themes possible with pure CSS.
+- FR24 renders aircraft on a dedicated full-screen canvas outside the Google Maps container. That's what makes focus mode, plane opacity, basemap dimming and planes-stay-bright themes possible with pure CSS.
+- FR24's basemap is a WebGL *vector* Google map, where `overlayMapTypes` never renders — the rain radar is therefore drawn as a DOM tile layer via `google.maps.OverlayView`, which does work on vector maps.
+- Verified end-to-end in real Firefox (via `web-ext`/WebDriver BiDi) and Chromium: sidebar/ads removal, panel modes, themes, dimming, focus mode, rain radar tiles, and clean radar teardown.
 - Hiding individual *other* aircraft entirely isn't possible client-side (all planes share one WebGL canvas); focus mode's radial mask is the closest equivalent, and it works because following keeps your plane at screen center.
 - Needs a browser with CSS `:has()` and `mask-image` support (Chrome 120+, Firefox 121+).

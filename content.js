@@ -32,10 +32,20 @@
     html.classList.toggle("fcv-panel-hidden", settings.panelMode === "hidden");
     html.classList.toggle("fcv-dim", settings.dimPanel);
     html.classList.toggle("fcv-no-pill", !settings.showPill);
-    for (const t of THEMES) {
-      html.classList.toggle(`fcv-theme-${t}`, t !== "normal" && settings.mapTheme === t);
-    }
     html.classList.toggle("fcv-focus", settings.focusMode);
+    // Theme + basemap dimming combine into one CSS filter on .gm-style.
+    const parts = [];
+    if (settings.mapTheme === "grayscale") parts.push("grayscale(1)");
+    if (settings.mapTheme === "sepia") parts.push("sepia(0.55) saturate(0.9)");
+    if (settings.mapTheme === "night")
+      parts.push("invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.95)");
+    const dim = Math.min(80, Math.max(0, settings.mapDim));
+    if (dim > 0) parts.push(`brightness(${(1 - dim / 100).toFixed(2)})`);
+    html.style.setProperty("--fcv-map-filter", parts.join(" ") || "none");
+    html.style.setProperty(
+      "--fcv-rain-filter",
+      settings.mapTheme === "night" ? "invert(1) hue-rotate(180deg)" : "none"
+    );
     html.style.setProperty(
       "--fcv-plane-opacity",
       String(Math.min(100, Math.max(20, settings.planeOpacity)) / 100)
@@ -44,17 +54,7 @@
     // Let the map (Google Maps) pick up the new available width.
     window.dispatchEvent(new Event("resize"));
     syncWeather();
-    syncDim();
     updatePill();
-  }
-
-  // ---- Basemap dimming (planes stay bright; drawn by page-hook.js) ----
-  let lastSentDim = null;
-  function syncDim() {
-    const opacity = Math.min(80, Math.max(0, settings.mapDim)) / 100;
-    if (opacity === lastSentDim) return;
-    lastSentDim = opacity;
-    window.postMessage({ source: "fcv", cmd: "dim", opacity }, "*");
   }
 
   // ---- Tag FR24's aircraft canvas so CSS can target it ----
@@ -101,9 +101,9 @@
     }
     weatherPending = true;
     try {
-      const res = await fetch("https://api.rainviewer.com/public/weather-maps.json");
-      const data = await res.json();
-      const tilePath = data?.radar?.past?.at(-1)?.path;
+      // Fetched by the background script: Firefox content scripts can't make
+      // cross-origin requests themselves.
+      const { tilePath } = await api.runtime.sendMessage({ cmd: "fcv-rain-path" });
       if (tilePath) {
         window.postMessage({ source: "fcv", cmd: "weather", on: true, tilePath }, "*");
       }
@@ -119,6 +119,8 @@
     if (e.data.cmd === "weather-state") {
       weatherActive = e.data.active;
       updatePill();
+      // Map wasn't captured yet (page still booting) — retry shortly.
+      if (settings.weather && !weatherActive) setTimeout(syncWeather, 3000);
     }
   });
 
