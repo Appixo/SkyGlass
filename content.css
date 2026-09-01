@@ -44,26 +44,23 @@ html.fcv-dim #app main div.w-84:hover {
 #app main .gm-style {
   filter: var(--fcv-map-filter, none);
 }
-/* The night theme's invert would recolor the rain radar; counter it. */
-.fcv-rain-layer {
-  filter: var(--fcv-rain-filter, none);
-}
 
 /* ---- Aircraft layer (canvas tagged by content.js) ---- */
 canvas.fcv-planes {
   opacity: var(--fcv-plane-opacity, 1);
 }
 
-/* Focus mode: only the followed plane (screen center) stays fully visible;
-   every other aircraft fades to a ghost. Works best with auto-follow on. */
-html.fcv-focus canvas.fcv-planes {
+/* Focus mode: a spotlight follows the tracked aircraft (position projected
+   by page-hook.js); every other plane fades to a ghost. The mask engages
+   only while a flight is actually being followed (fcv-focus-active). */
+html.fcv-focus.fcv-focus-active canvas.fcv-planes {
   mask-image: radial-gradient(
-    circle at 50% 50%,
+    circle at var(--fcv-focus-x, 50%) var(--fcv-focus-y, 50%),
     rgb(0 0 0) 0 70px,
     rgb(0 0 0 / 0.1) 150px
   );
   -webkit-mask-image: radial-gradient(
-    circle at 50% 50%,
+    circle at var(--fcv-focus-x, 50%) var(--fcv-focus-y, 50%),
     rgb(0 0 0) 0 70px,
     rgb(0 0 0 / 0.1) 150px
   );

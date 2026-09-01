@@ -12,7 +12,6 @@
     panelMode: "compact", // "full" | "compact" | "hidden"
     dimPanel: false,
     showPill: true,
-    weather: false,
     autoFollow: false,
     mapDim: 0, // 0–80 (%)
     mapTheme: "normal", // "normal" | "grayscale" | "sepia" | "night"
@@ -53,7 +52,6 @@
     tagPlaneCanvas();
     // Let the map (Google Maps) pick up the new available width.
     window.dispatchEvent(new Event("resize"));
-    syncWeather();
     updatePill();
   }
 
@@ -89,48 +87,54 @@
   }
   setInterval(autoFollowTick, 3000);
 
-  // ---- Rain radar overlay (free RainViewer tiles, drawn by page-hook.js) ----
-  let weatherActive = false;
-  let weatherPending = false;
+  // ---- Focus-mode spotlight tracking ----
+  // The mask must sit on the followed aircraft, which is NOT always at the
+  // exact screen center. FR24 publishes the flight's live lat/lng in the
+  // panel; page-hook.js projects it to container pixels via the map.
+  function isFollowing() {
+    const btn = document.querySelector(
+      '[data-testid="aircraft__follow-flight-button"]'
+    );
+    const svg = btn && btn.querySelector("svg");
+    return !!svg && svg.classList.contains("stroke-0.5");
+  }
 
-  async function syncWeather() {
-    if (settings.weather === weatherActive || weatherPending) return;
-    if (!settings.weather) {
-      window.postMessage({ source: "fcv", cmd: "weather", on: false }, "*");
-      return;
-    }
-    weatherPending = true;
-    try {
-      // Fetched by the background script: Firefox content scripts can't make
-      // cross-origin requests themselves.
-      const { tilePath } = await api.runtime.sendMessage({ cmd: "fcv-rain-path" });
-      if (tilePath) {
-        window.postMessage({ source: "fcv", cmd: "weather", on: true, tilePath }, "*");
-      }
-    } catch (e) {
-      console.warn("SkyGlass: rain radar unavailable", e);
-    } finally {
-      weatherPending = false;
-    }
+  function readPanelLatLng() {
+    // The testid element may include the "latitude"/"longitude" label text,
+    // so pull the first decimal number out rather than parseFloat directly.
+    const num = (sel) => {
+      const m = document.querySelector(sel)?.textContent.match(/-?\d+\.?\d*/);
+      return m ? parseFloat(m[0]) : NaN;
+    };
+    const lat = num('[data-testid="aircraft-panel__lat"]');
+    const lng = num('[data-testid="aircraft-panel__lng"]');
+    return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
   }
 
   window.addEventListener("message", (e) => {
     if (e.source !== window || e.data?.source !== "fcv-page") return;
-    if (e.data.cmd === "weather-state") {
-      weatherActive = e.data.active;
-      updatePill();
-      // Map wasn't captured yet (page still booting) — retry shortly.
-      if (settings.weather && !weatherActive) setTimeout(syncWeather, 3000);
+    if (e.data.cmd === "projected" && e.data.ok) {
+      const html = document.documentElement;
+      html.style.setProperty("--fcv-focus-x", `${e.data.x}px`);
+      html.style.setProperty("--fcv-focus-y", `${e.data.y}px`);
     }
   });
 
-  // Refresh the radar frame every 10 minutes while enabled.
-  setInterval(() => {
-    if (settings.weather) {
-      weatherActive = false;
-      syncWeather();
+  function focusTick() {
+    const html = document.documentElement;
+    if (!settings.focusMode) {
+      html.classList.remove("fcv-focus-active");
+      return;
     }
-  }, 10 * 60 * 1000);
+    // Only spotlight while a flight is actually followed; otherwise the mask
+    // would fade the very plane the user cares about.
+    const pos = isFollowing() ? readPanelLatLng() : null;
+    html.classList.toggle("fcv-focus-active", !!pos);
+    if (pos) {
+      window.postMessage({ source: "fcv", cmd: "project", ...pos }, "*");
+    }
+  }
+  setInterval(focusTick, 400);
 
   function save(patch) {
     settings = { ...settings, ...patch };
@@ -225,7 +229,6 @@
       save({ panelMode: next });
     },
     d: () => save({ dimPanel: !settings.dimPanel }),
-    w: () => save({ weather: !settings.weather }),
     a: () => save({ autoFollow: !settings.autoFollow }),
     o: () => save({ focusMode: !settings.focusMode }),
     t: () => {
@@ -237,13 +240,6 @@
       const steps = [0, 30, 50, 70];
       const next = steps[(steps.indexOf(settings.mapDim) + 1) % steps.length] ?? 30;
       save({ mapDim: next });
-    },
-    f: () => {
-      // Click the site's own Follow button once.
-      const btn = document.querySelector(
-        '[data-testid="aircraft__follow-flight-button"]'
-      );
-      if (btn) btn.click();
     },
   };
 

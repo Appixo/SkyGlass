@@ -6,18 +6,17 @@ A browser extension (Chrome + Firefox) that declutters [Flightradar24](https://w
 - **Compact flight panel** — keeps route, times, altitude and speed, drops the aircraft photo and the 250px ad slot embedded in the panel
 - **Hidden panel mode** — a completely clean map
 - **Dim panel** — the flight panel goes translucent until you hover it
-- **Live rain radar overlay** — real-time precipitation drawn on the map, using the free [RainViewer](https://www.rainviewer.com/api.html) public API (refreshes every 10 minutes)
 - **Auto-follow** — keeps the selected flight followed; if following ever drops (map drag, panel re-render), it re-engages within seconds
-- **Focus mode** — fades every aircraft except the one at screen center (the followed plane) to a ghost, so a busy sky reduces to your one flight; pairs perfectly with auto-follow
+- **Focus mode** — a spotlight tracks the followed aircraft (its live position projected through the map) and fades every other plane to a ghost; it only engages while a flight is actually followed, so it never hides the plane you care about
 - **Map themes** — Normal / Grayscale / Sepia / Night (inverted); the aircraft layer is drawn separately, so planes stay bright yellow even on the night map
 - **Basemap dimming** — darkens only the map tiles (planes, trails and labels keep full brightness)
 - **Plane opacity** — global slider for the aircraft layer
-- **Keyboard shortcuts** — `S` sidebar, `P` panel cycle, `D` dim panel, `W` rain radar, `A` auto-follow, `O` focus mode, `T` cycle map theme, `M` cycle map dimming, `F` follow once
+- **Keyboard shortcuts** — `S` sidebar, `P` panel cycle, `D` dim panel, `A` auto-follow, `O` focus mode, `T` cycle map theme, `M` cycle map dimming
 - **On-map control pill** (bottom-right) — sidebar (◧), panel cycle (▤/▥/□), panel dimming (◑), auto-follow (⌖), focus mode (◎)
 
-Settings are also available from the toolbar popup and sync across devices via extension storage.
+The toolbar popup carries only what the pill doesn't: ad removal, pill visibility, map theme and the two sliders.
 
-> FR24's actual premium features (extended history, alerts, their weather layers, unlimited 3D) are gated server-side by their subscription — this extension doesn't and won't unlock those. The rain radar here comes from RainViewer's free public tiles instead.
+> FR24's actual premium features (extended history, alerts, weather layers, unlimited 3D) are gated server-side by their subscription — this extension doesn't and won't unlock those.
 
 ## Install (Chrome / Edge)
 
@@ -34,18 +33,16 @@ Settings are also available from the toolbar popup and sync across devices via e
 
 ## Files
 
-- `manifest.json` — MV3 manifest, works in both Chrome and Firefox (the `browser_specific_settings` key is ignored by Chrome; the dual `background` declaration serves Chrome's service worker and Firefox's event page)
-- `background.js` — fetches the RainViewer frame index (Firefox content scripts can't make cross-origin requests, so this lives in the background in both browsers)
+- `manifest.json` — MV3 manifest, works in both Chrome and Firefox (the `browser_specific_settings` key is ignored by Chrome)
 - `content.css` — all visual rules, gated behind `fcv-*` classes on `<html>`
-- `content.js` — applies settings, injects the control pill, keyboard shortcuts, RainViewer frame fetching
-- `page-hook.js` — runs in the page world at `document_start`; wraps `google.maps.Map` to capture the map instance so the radar overlay can be attached
+- `content.js` — applies settings, injects the control pill, keyboard shortcuts, auto-follow and focus tracking
+- `page-hook.js` — runs in the page world at `document_start`; wraps `google.maps.Map` to capture the map instance and answer lat/lng → pixel projection requests for the focus spotlight
 - `popup.html` / `popup.js` — settings popup
 
 ## Notes
 
 - Selectors use FR24's own `data-testid` attributes where they exist (`aircraft-panel`, `aircraft__follow-flight-button`, …) — far more stable than Tailwind classes. A few fallbacks (`aside.w-sidebar`, `[id^="pb-slot"]`) remain for elements without testids.
 - FR24 renders aircraft on a dedicated full-screen canvas outside the Google Maps container. That's what makes focus mode, plane opacity, basemap dimming and planes-stay-bright themes possible with pure CSS.
-- FR24's basemap is a WebGL *vector* Google map, where `overlayMapTypes` never renders — the rain radar is therefore drawn as a DOM tile layer via `google.maps.OverlayView`, which does work on vector maps.
-- Verified end-to-end in real Firefox (via `web-ext`/WebDriver BiDi) and Chromium: sidebar/ads removal, panel modes, themes, dimming, focus mode, rain radar tiles, and clean radar teardown.
+- Verified in real Firefox (via `web-ext`/WebDriver BiDi) and Chromium: sidebar/ads removal, panel modes, themes, dimming, focus-mode masking and its follow-gated fail-safe.
 - Hiding individual *other* aircraft entirely isn't possible client-side (all planes share one WebGL canvas); focus mode's radial mask is the closest equivalent, and it works because following keeps your plane at screen center.
 - Needs a browser with CSS `:has()` and `mask-image` support (Chrome 120+, Firefox 121+).
