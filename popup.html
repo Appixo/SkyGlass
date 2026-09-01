@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body {
+      width: 240px;
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      font-size: 13px;
+      background: #161a22;
+      color: #e6e9ee;
+    }
+    header {
+      padding: 10px 14px;
+      font-weight: 600;
+      font-size: 14px;
+      border-bottom: 1px solid #2a3040;
+      color: #f8d648;
+    }
+    .group { padding: 8px 14px; }
+    .group + .group { border-top: 1px solid #2a3040; }
+    label { display: flex; align-items: center; gap: 8px; padding: 5px 0; cursor: pointer; }
+    .title { font-weight: 600; margin: 4px 0 2px; color: #9aa3b2; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+    input { accent-color: #f8d648; }
+  </style>
+</head>
+<body>
+  <header>FR24 Clear View</header>
+  <div class="group">
+    <label><input type="checkbox" id="hideSidebar" /> Hide right sidebar</label>
+    <label><input type="checkbox" id="hideAds" /> Remove ad slots</label>
+    <label><input type="checkbox" id="dimPanel" /> Dim panel until hovered</label>
+    <label><input type="checkbox" id="showPill" /> Show on-map buttons</label>
+  </div>
+  <div class="group">
+    <div class="title">Flight panel</div>
+    <label><input type="radio" name="panelMode" value="full" /> Full</label>
+    <label><input type="radio" name="panelMode" value="compact" /> Compact (no photo)</label>
+    <label><input type="radio" name="panelMode" value="hidden" /> Hidden</label>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
